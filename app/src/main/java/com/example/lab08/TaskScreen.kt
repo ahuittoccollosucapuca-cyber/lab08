@@ -3,16 +3,15 @@ package com.example.lab08
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskScreen(viewModel: TaskViewModel) {
     val tasks by viewModel.tasks.collectAsState()
@@ -23,114 +22,88 @@ fun TaskScreen(viewModel: TaskViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Mis Tareas - Lab08",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
+        // Campo de texto superior
+        TextField(
+            value = newTaskDescription,
+            onValueChange = { newTaskDescription = it },
+            label = { Text("Nueva tarea") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.colors(
+                unfocusedContainerColor = Color(0xFFE6EBF8) // Color azulado claro de la imagen
+            )
         )
 
-        // Campo para añadir nueva tarea
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Botón Agregar Tarea
+        Button(
+            onClick = {
+                if (newTaskDescription.isNotBlank()) {
+                    viewModel.addTask(newTaskDescription)
+                    newTaskDescription = ""
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF536493)) // Color de la imagen
         ) {
-            TextField(
-                value = newTaskDescription,
-                onValueChange = { newTaskDescription = it },
-                label = { Text("Nueva tarea...") },
-                modifier = Modifier.weight(1f)
-            )
-            Button(
-                onClick = {
-                    if (newTaskDescription.isNotBlank()) {
-                        viewModel.addTask(newTaskDescription)
-                        newTaskDescription = ""
-                    }
-                },
-                modifier = Modifier.padding(start = 8.dp)
-            ) {
-                Text("Añadir")
+            Text("Agregar tarea", fontSize = 16.sp)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Lista de tareas con peso para que el botón de abajo se quede al fondo
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            items(tasks) { task ->
+                TaskItemRow(
+                    task = task,
+                    onToggle = { viewModel.toggleTaskCompletion(task) }
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Lista de tareas
-        LazyColumn {
-            items(tasks) { task ->
-                TaskItem(
-                    task = task,
-                    onToggle = { viewModel.toggleTaskCompletion(task) },
-                    onDelete = { viewModel.deleteTask(task) },
-                    onEdit = { newDesc -> viewModel.editTask(task, newDesc) }
-                )
-            }
+        // Botón Eliminar todas las tareas
+        Button(
+            onClick = { viewModel.deleteAllTasks() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF536493))
+        ) {
+            Text("Eliminar todas las tareas", fontSize = 16.sp)
         }
     }
 }
 
 @Composable
-fun TaskItem(
-    task: Task,
-    onToggle: () -> Unit,
-    onDelete: () -> Unit,
-    onEdit: (String) -> Unit
-) {
-    var isEditing by remember { mutableStateOf(false) }
-    var editDescription by remember { mutableStateOf(task.description) }
-
-    Card(
+fun TaskItemRow(task: Task, onToggle: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(
-                checked = task.isCompleted,
-                onCheckedChange = { onToggle() }
-            )
+        Text(
+            text = task.description,
+            fontSize = 18.sp,
+            modifier = Modifier.weight(1f)
+        )
 
-            if (isEditing) {
-                TextField(
-                    value = editDescription,
-                    onValueChange = { editDescription = it },
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = {
-                    onEdit(editDescription)
-                    isEditing = false
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Guardar",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            } else {
-                Text(
-                    text = task.description,
-                    modifier = Modifier.weight(1f),
-                    style = if (task.isCompleted) {
-                        MaterialTheme.typography.bodyLarge.copy(
-                            textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
-                        )
-                    } else {
-                        MaterialTheme.typography.bodyLarge
-                    }
-                )
-                IconButton(onClick = { isEditing = true }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar")
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
-                }
-            }
+        Button(
+            onClick = onToggle,
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (task.isCompleted) Color.Gray else Color(0xFF536493)
+            ),
+            modifier = Modifier.width(120.dp)
+        ) {
+            Text(if (task.isCompleted) "Completado" else "Pendiente")
         }
     }
 }

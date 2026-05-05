@@ -42,9 +42,9 @@ class TaskViewModel(private val dao: TaskDao) : ViewModel() {
     }
 
     // --- REQUERIMIENTO EJERCICIO 1 ---
-    fun deleteTask(task: Task) {
+    fun deleteAllTasks() {
         viewModelScope.launch {
-            dao.deleteTask(task)
+            dao.deleteAllTasks()
             fetchTasks()
         }
     }
